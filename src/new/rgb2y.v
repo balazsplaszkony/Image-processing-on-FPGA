@@ -4,17 +4,17 @@ module rgb2y(
     input  signed [17:0] kr_i,
     input  signed [17:0] kb_i,
     
-    (* mark_debug="true" *) input                dv_i,
-    (* mark_debug="true" *) input                hs_i,
-    (* mark_debug="true" *) input                vs_i,
-    (* mark_debug="true" *) input          [7:0] r_i,
-    (* mark_debug="true" *) input          [7:0] g_i,
-    (* mark_debug="true" *) input          [7:0] b_i,
+    input                dv_i,
+    input                hs_i,
+    input                vs_i,
+    input          [7:0] r_i,
+    input          [7:0] g_i,
+    input          [7:0] b_i,
     
-    (* mark_debug="true" *) output               dv_o,
-    (* mark_debug="true" *) output               hs_o,
-    (* mark_debug="true" *) output               vs_o,
-    (* mark_debug="true" *) output         [7:0] y_o
+    output               dv_o,
+    output               hs_o,
+    output               vs_o,
+    output         [7:0] y_o
 );
 integer i;
 

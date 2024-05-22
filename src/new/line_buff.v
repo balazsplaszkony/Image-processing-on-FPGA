@@ -25,18 +25,27 @@ module line_buff(
     input [7:0] data_in,
     input [10:0] address,
     input write_enable,
+    input h_sync,
+    input rst,
     output [7:0] data_out
     );
     
     reg [7:0] ram [1599:0];
     reg [7:0] data_out_r;
 
-    
+    integer i;
     always @ (posedge clk)
     begin
+    /*
+    if (rst)
+        begin
+            ram <= 0;
+        end   */     
         if(write_enable)
             ram[address] <= data_in;
-        data_out_r <= ram[address];
     end
+    always @ (negedge clk)
+        data_out_r <= ram[address];
+        
     assign data_out=data_out_r;
 endmodule

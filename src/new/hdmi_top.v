@@ -177,10 +177,15 @@ rgb2y rgb2y_i(
     .vs_o (tx_vs),
     .y_o  (y)
 );
+
+wire [7:0] convolved_data;
+
 assign tx_red   = convolved_data;
 assign tx_green = convolved_data;
 assign tx_blue  = convolved_data;
 
+wire matrix_dv, matrix_hs, matrix_vs;
+wire fir_dv, fir_hs, fir_vs;
 
 hdmi_tx hdmi_tx_0(
    .tx_clk(rx_clk),
@@ -189,9 +194,9 @@ hdmi_tx hdmi_tx_0(
    .tx_red(tx_red),
    .tx_green(tx_green),
    .tx_blue(tx_blue),
-   .tx_dv(tx_dv),
-   .tx_hs(tx_hs),
-   .tx_vs(tx_vs),
+   .tx_dv(fir_dv),
+   .tx_hs(fir_hs),
+   .tx_vs(fir_vs),
    .hdmi_tx_clk_p(hdmi_tx_clk_p),
    .hdmi_tx_clk_n(hdmi_tx_clk_n),
    .hdmi_tx_d0_p(hdmi_tx_d0_p),
@@ -202,23 +207,31 @@ hdmi_tx hdmi_tx_0(
    .hdmi_tx_d2_n(hdmi_tx_d2_n)
 );
 
-wire [199:0] out_pixel;
- pixel_window pixel_window_0(
+wire [39:0] out_pixel;
+pixel_window pixel_window_0(
      .clk(rx_clk),              
-     .rst(rst),               
+     .rst(rst),
+     .h_sync_i(tx_hs),
+     .v_sync_i(tx_vs),                            
      .incoming_pixel(y),
-     .pixel_valid(rx_dv),
-     .out_pixel(out_pixel)
+     .pixel_valid_input(tx_dv),
+     .pixel_valid_output(matrix_dv),
+     .out_pixel(out_pixel),
+     .h_sync_o(matrix_hs),
+     .v_sync_o(matrix_vs)
 );
 
-wire [7:0] convolved_data;
-wire convolved_data_valid;
 fir_filter fir_filter_0(
 .clk(rx_clk),
+.rst(rst),
 .pixel_data(out_pixel),
-.pixel_data_valid(1),
-.convolved_data(convolved_data),
-.convolved_data_valid(convolved_data_valid)
+.dv_i(matrix_dv),
+.hs_i(matrix_hs),
+.vs_i(matrix_vs),
+.dv_o(fir_dv),
+.hs_o(fir_hs),
+.vs_o(fir_vs),
+.convolved_data(convolved_data)
 );
 
 assign led_r = {pll_locked, 1'b0, rx_status};

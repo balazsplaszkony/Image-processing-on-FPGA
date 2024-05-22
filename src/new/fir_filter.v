@@ -19,76 +19,87 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-module fir_filter(
-    input            clk,
-    input signed [199:0]    pixel_data,
-    input            pixel_data_valid,
-    output reg [29:0] convolved_data,
-    output reg       convolved_data_valid
+module fir_filter (
+    input                clk,
+    input                rst,
+    input signed [39:0] pixel_data,
+    input                dv_i,
+    input                hs_i,
+    input                vs_i,
+    output               dv_o,
+    output               hs_o,
+    output               vs_o,
+    output wire [7:0]    convolved_data
 );
-
 integer i;
-reg signed [15:0] kernel           [24:0];
-wire signed [15:0] pixel_reg        [24:0];
-reg signed [32:0] mul_data         [24:0]; 
-reg mult_data_valid;
-reg signed [36:0] sum_data;
-reg sum_data_valid;
+reg signed [15:0] kernel [24:0];
 
-
-initial
-begin
-    for(i=0;i<25;i=i+1)
-    begin
-        kernel[i] = 10;
+initial begin
+    for (i = 0; i < 25; i = i + 1) begin
+        //kernel[i] = (i% 5 == 0) ? 256 : 0;
+                kernel[i] = 10;
     end
-end  
-
-genvar j;
-generate
-begin
-    for ( j = 0; j < 25; j = j + 1)
-    begin
-       assign  pixel_reg[j] = $signed ({8'b0, pixel_data[8*j +: 8]});
-       end
+    /*kernel[2] = 256;
+    kernel[8] = 256;
+    kernel[11] = 256;
+    kernel[15] = 256;
+    kernel[23] = 256;*/
 end
+
+wire signed [36:0] dsp_output [25:0];
+assign dsp_output[0] = 37'd0;
+
+reg [199:0] shr[4:0];
+initial 
+    begin
+        for (i = 0; i < 5; i = i + 1)
+            shr[i] <= 200'b0;
+    end
+    
+integer chain_idx = 0;
+integer pixel_idx = 0;
+always @(posedge clk)
+    /*if (rst)
+        for(chain_idx = 0; chain_idx < 5; chain_idx = chain_idx +1)
+            shr[chain_idx] <= 200'b0;
+    else*/
+    begin
+        for (chain_idx = 0; chain_idx < 5; chain_idx = chain_idx +1)
+            shr[chain_idx] <= {pixel_data[chain_idx*8+:8], shr[chain_idx][199:8]};
+
+    end
+
+generate
+    genvar outer_idx;
+    genvar inner_idx;
+    for (outer_idx = 0; outer_idx < 5; outer_idx = outer_idx + 1) begin : gen_outer
+        for (inner_idx = 0; inner_idx < 5; inner_idx = inner_idx + 1) begin : gen_inner
+            begin                
+                dsp48e1_mac  dsp48e1_inst (
+                    .clk(clk),
+                    .a({8'b0, shr[outer_idx][199 - (outer_idx*40 + inner_idx * 8 ) : 192 - (outer_idx*40 + (inner_idx) * 8 )]}),
+                    .b(kernel[outer_idx*5 + inner_idx]),  
+                    .c(dsp_output[outer_idx*5 + inner_idx]),
+                    .p(dsp_output[outer_idx*5 + inner_idx + 1])
+                );
+            end
+        end
+    end
 endgenerate
 
-always @(posedge clk)
-begin
-    for(i=0;i<25;i=i+1)
-    begin
-        mul_data[i] <= kernel[i] * pixel_reg[i]; 
-    end
-    mult_data_valid <= pixel_data_valid;
-end
+assign convolved_data = (dsp_output[25][36]) ? 8'b0 :
+                        (dsp_output[25][35:16] > 0) ? 8'b1111_1111 :
+                        dsp_output[25][15:8];
+                        
+reg [2:0] cntrl_dl[27:0];
+integer delay;
+always @ (posedge clk)
+for (delay=0; delay<28; delay=delay+1)
+    cntrl_dl[delay] <= (delay==0) ? {dv_i, hs_i, vs_i} : cntrl_dl[delay-1];
 
-always @(*)
-begin
-    sum_data = 0;
-    for (i = 0; i < 25; i = i + 1)
-    begin
-         sum_data = $signed (sum_data) + $signed (mul_data[i]);
-    end
-    sum_data_valid = mult_data_valid; 
-end
-
-always @(posedge clk)
-begin
-    if (sum_data[36]) 
-    begin
-        convolved_data <= 8'b0;
-    end
-    else 
-    begin
-        if (sum_data[35:16] > 0)
-            convolved_data <= 8'b1111_1111;
-        else
-            convolved_data <= sum_data[15:8];
-    end
-    convolved_data_valid <= sum_data_valid;
-end
+assign dv_o = cntrl_dl[27][2];
+assign hs_o = cntrl_dl[27][1];
+assign vs_o = cntrl_dl[27][0];
 
 endmodule
 

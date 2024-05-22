@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 05.05.2024 16:54:47
+// Create Date: 18.05.2024 23:57:49
 // Design Name: 
-// Module Name: shift_register
+// Module Name: dsp48e1_mac
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -19,23 +19,26 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+module dsp48e1_mac 
+(input clk,
+ input signed [15:0] b, a, 
+ input signed [36:0] c,
+ output reg signed [36:0] p);
+
+reg signed [15:0] coeff;
+reg signed [15:0] data;
+reg signed [15:0] dataz;
+reg signed [31:0] product;
 
 
-module shift_register
-(
-input clk,
-input rst,
-input en,
-input h_sync,
-input [7:0] data_in,
-output reg [39:0] data_out
-    );
-    
-    always @ (posedge clk)
-    if (rst)
-    data_out <= 0;
-    else if(en)
-    begin
-    data_out <={data_in, data_out[39:8]};
-    end
+always @(posedge clk)
+begin
+coeff <= b;
+data <= a;
+dataz <=  data;
+product <= dataz * coeff;
+p <= product + c;
+end
+
 endmodule
+
