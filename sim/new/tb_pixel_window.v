@@ -31,24 +31,40 @@ module tb_pixel_window(
     
     always #5 clk<= ~clk;
     initial
-     #10 rst<=0;
+     #8 rst<=0;
      
      reg [10:0] cntr=11'b0;
-     always @ (negedge clk)
-     if(cntr==20)
+     always @ (posedge clk)
+     if(cntr==60)
      begin
      cntr<=11'b0;
-     rst<=1;
+     //rst<=1;
      end
      else
       begin
      cntr<=cntr+1;
      rst<=0;
      end
+     wire hs_o, vs_o, dv_o;
+     reg hs_i, vs_i, dv_i;
+     initial 
+     begin
+     hs_i <= 0;
+     vs_i <= 0;
+     dv_i <= 1;
+     end
+     always @ (posedge clk)
+     begin
+        if (cntr == 20 || cntr == 40)
+            hs_i <= 1;
+        else
+            hs_i <= 0;   
+     end
+
+     pixel_window uut(.clk(clk), .rst(rst), .h_sync_i(hs_i), .v_sync_i(vs_i),  .incoming_pixel(incoming_pixel),
+                      .pixel_valid_input(1), .out_pixel(out_pixel), .pixel_valid_output(dv_o), .h_sync_o(hs_o), .v_sync_o(vs_o));
      
-     pixel_window uut(.clk(clk), .rst(rst), .incoming_pixel(incoming_pixel), .out_pixel(out_pixel));
-     
-     always @(negedge clk)
+     always @(posedge clk)
         incoming_pixel<=incoming_pixel+8'b1;
         
 endmodule

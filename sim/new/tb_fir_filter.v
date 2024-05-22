@@ -24,11 +24,11 @@ module tb_fir_filter(
 
     );
     
+    reg rst = 1;
     reg clk = 0;
-    reg reset = 1;
     wire pixel_data_valid = 1;
-    reg [199:0] pixel_data;
-    wire  convolved_data_valid = 0;
+    reg [39:0] pixel_data;
+    wire  convolved_data_valid = 1;
     wire [7:0] convolved_data;
     integer i;
     
@@ -43,24 +43,30 @@ initial
     
     initial 
     begin
-    
-            for (i = 0; i < 25; i = i + 1) 
+            for (i = 0; i < 5; i = i + 1) 
         begin
-            pixel_data[8*i +: 8] = 8'b00000001;
+            pixel_data[8*i +: 8] = 8'b00000000;
         end
-                reset <= 0;
-
-
     end
     
+    initial
+    begin 
+    #8 rst <= 0;
+    end 
     
+    integer idx = 0;
     always @(posedge clk)
     begin
-        for (i = 0; i < 25; i = i + 1)
-        pixel_data[8*i +: 8] <= pixel_data[8*i +: 8] + 1;       
+        for (i = 0; i < 5; i = i + 1)
+        //if (pixel_data[8*i +: 8] != 255)
+          if ( idx == 3)
+            pixel_data[8*i +: 8] <= (pixel_data[8*i +: 8] + 10);
+          else 
+            pixel_data <= 0;
+          idx = idx + 1;
     end
     
-    fir_filter uut(.clk(clk), .pixel_data(pixel_data), .pixel_data_valid(pixel_data_valid), 
-                   .convolved_data(convolved_data), .convolved_data_valid(convolved_data_valid));
+    fir_filter uut(.clk(clk), .rst(rst), .pixel_data(pixel_data), .dv_i(pixel_data_valid), 
+                   .convolved_data(convolved_data), .dv_o(convolved_data_valid));
     
 endmodule
